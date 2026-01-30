@@ -79,7 +79,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 from db import db_url
 df = pd.read_csv('/path/to/data.csv')
-create_engine(db_url).execute(df.to_sql('my_table', if_exists='replace'))
+df.to_sql('my_table', create_engine(db_url), if_exists='replace', index=False)
 "
 ```
 
@@ -90,7 +90,7 @@ create_engine(db_url).execute(df.to_sql('my_table', if_exists='replace'))
 source .venv/bin/activate
 docker compose up -d data-agent-db  # PostgreSQL
 python -m da.scripts.load_data
-python -m da.agent  # CLI mode
+python -m da  # CLI mode
 ```
 
 ## Environment Variables
