@@ -33,6 +33,14 @@ cat << 'BANNER'
 BANNER
 echo -e "${NC}"
 
+# Load .env if it exists
+if [[ -f .env ]]; then
+    set -a
+    source .env
+    set +a
+    echo -e "${DIM}Loaded .env${NC}"
+fi
+
 # Preflight
 if ! command -v railway &> /dev/null; then
     echo "Railway CLI not found. Install: https://docs.railway.app/guides/cli"
@@ -40,7 +48,7 @@ if ! command -v railway &> /dev/null; then
 fi
 
 if [[ -z "$OPENAI_API_KEY" ]]; then
-    echo "OPENAI_API_KEY not set."
+    echo "OPENAI_API_KEY not set. Add to .env or export it."
     exit 1
 fi
 
@@ -69,7 +77,8 @@ railway add --service agent_os \
     --variables "DB_DRIVER=postgresql+psycopg" \
     --variables "WAIT_FOR_DB=True" \
     --variables "DATA_DIR=/data" \
-    --variables "OPENAI_API_KEY=${OPENAI_API_KEY}"
+    --variables "OPENAI_API_KEY=${OPENAI_API_KEY}" \
+    --variables "PORT=8000"
 
 echo ""
 echo -e "${BOLD}Deploying application...${NC}"
