@@ -71,14 +71,14 @@ Optionally save as Knowledge
 
 ## Insights, Not Just Rows
 
+Dash reasons about what makes an answer useful, not just technically correct.
+
 **Question:**
 Who won the most races in 2019?
 
 | Typical SQL Agent | Dash |
 |------------------|------|
 | `Hamilton: 11` | Lewis Hamilton dominated 2019 with **11 wins out of 21 races**, more than double Bottas’s 4 wins. This performance secured his sixth world championship. |
-
-Dash reasons about what makes an answer useful, not just technically correct.
 
 ## Quick Start
 
@@ -112,6 +112,54 @@ docker exec -it dash-api python -m dash.scripts.load_knowledge
 Who won the most F1 World Championships?
 How many races has Lewis Hamilton won?
 Compare Ferrari vs Mercedes points 2015-2020
+```
+
+## Deploy to Railway
+
+```sh
+railway login
+
+./scripts/railway_up.sh
+```
+
+### Production Operations
+
+**Load data and knowledge:**
+```sh
+railway run python -m dash.scripts.load_data
+railway run python -m dash.scripts.load_knowledge
+```
+
+**View logs:**
+```sh
+railway logs --service dash-api
+railway logs --service dash-api -f  # Follow logs
+```
+
+**Run commands in production:**
+```sh
+railway run python -m dash  # CLI mode
+```
+
+**Database access:**
+```sh
+railway connect dash-db  # Opens psql shell
+```
+
+**Redeploy after changes:**
+```sh
+railway up --service dash-api -d
+```
+
+**Open dashboard:**
+```sh
+railway open
+```
+
+**Stop services:**
+```sh
+railway down --service dash-api
+railway down --service dash-db
 ```
 
 ## Adding Knowledge
@@ -193,14 +241,6 @@ python -m dash.scripts.load_knowledge --recreate # Fresh start
 docker compose up -d dash-db
 python -m dash.scripts.load_data
 python -m dash  # CLI mode
-```
-
-## Deploy
-
-```sh
-railway login
-
-./scripts/railway_up.sh
 ```
 
 ## Environment Variables
