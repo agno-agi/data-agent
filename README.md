@@ -4,15 +4,45 @@ Dash is a **self-learning data agent** that grounds its answers in **6 layers of
 
 Inspired by [OpenAI's in-house data agent](https://openai.com/index/inside-our-in-house-data-agent/).
 
+## Quick Start
+
+```sh
+# Clone this repo
+git clone https://github.com/agno-agi/dash.git && cd dash
+# Add OPENAI_API_KEY by adding to .env file or export OPENAI_API_KEY=sk-***
+cp example.env .env
+
+# Start the application
+docker compose up -d --build
+
+# Load sample data and knowledge
+docker exec -it dash-api python -m dash.scripts.load_data
+docker exec -it dash-api python -m dash.scripts.load_knowledge
+```
+
+Confirm dash is running by navigation to [http://localhost:8000/docs](http://localhost:8000/docs).
+
+## Connect to the Web UI
+
+1. Open [os.agno.com](https://os.agno.com) and login
+2. Add OS → Local → `http://localhost:8000`
+3. Click "Connect"
+
+**Try it** (sample F1 dataset):
+
+- Who won the most F1 World Championships?
+- How many races has Lewis Hamilton won?
+- Compare Ferrari vs Mercedes points 2015-2020
+
 ## Why Text-to-SQL Breaks in Practice
 
-The dream is simple: ask a question in english, get a correct, meaningful answer. But raw LLMs writing SQL hit a wall fast:
+Our goal is simple: ask a question in english, get a correct, meaningful answer. But raw LLMs writing SQL hit a wall fast:
 
-- **Schemas lack meaning.** A column named `status` does not explain valid values or business semantics.
-- **Types are misleading.** The same concept might be INTEGER in one table and TEXT in another.
-- **Business logic is tribal.** Revenue definitions, exclusions, test filters, and unit conversions rarely live in the schema.
-- **Mistakes repeat forever.** Stateless agents relearn the same errors every session.
-- **Results lack interpretation.** Returning `Hamilton: 11` is not an answer without context.
+- **Schemas lack meaning.**
+- **Types are misleading.**
+- **Tribal knowledge is missing.**
+- **No way to learn from mistakes.**
+- **Results generally lack interpretation.**
 
 The root cause is missing context and missing memory.
 
@@ -33,7 +63,7 @@ The agent retrieves relevant context at query time via hybrid search, then gener
 
 ## The Self-Learning Loop
 
-Dash improves without retraining or fine-tuning.
+Dash improves without retraining or fine-tuning. We call this gpu-poor continuous learning.
 
 It learns through two complementary systems:
 
@@ -79,40 +109,6 @@ Who won the most races in 2019?
 | Typical SQL Agent | Dash |
 |------------------|------|
 | `Hamilton: 11` | Lewis Hamilton dominated 2019 with **11 wins out of 21 races**, more than double Bottas’s 4 wins. This performance secured his sixth world championship. |
-
-## Quick Start
-
-```sh
-git clone https://github.com/agno-agi/dash.git && cd dash
-# Add OPENAI_API_KEY by adding to .env file or export OPENAI_API_KEY=sk-***
-cp example.env .env
-
-# Start
-docker compose up -d --build
-
-# Load sample data and knowledge
-docker exec -it dash-api python -m dash.scripts.load_data
-docker exec -it dash-api python -m dash.scripts.load_knowledge
-```
-
-| Endpoint | URL |
-|----------|-----|
-| API | http://localhost:8000 |
-| Web UI | [os.agno.com](https://os.agno.com) → Add OS → Local → `http://localhost:8000` |
-
-## Connect to the Web UI
-
-1. Open [os.agno.com](https://os.agno.com) and login
-2. Add OS → Local → `http://localhost:8000`
-3. Click "Connect"
-
-**Try it** (sample F1 dataset):
-
-```
-Who won the most F1 World Championships?
-How many races has Lewis Hamilton won?
-Compare Ferrari vs Mercedes points 2015-2020
-```
 
 ## Deploy to Railway
 
