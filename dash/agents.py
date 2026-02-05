@@ -26,7 +26,11 @@ from agno.vectordb.pgvector import PgVector, SearchType
 
 from dash.context.business_rules import BUSINESS_CONTEXT
 from dash.context.semantic_model import SEMANTIC_MODEL_STR
-from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
+from dash.tools import (
+    create_introspect_schema_tool,
+    create_save_learning_tool,
+    create_save_validated_query_tool,
+)
 from db import db_url, get_postgres_db
 from db.duckdb_url import duckdb_url
 
@@ -65,11 +69,13 @@ dash_learnings = Knowledge(
 # ============================================================================
 
 save_validated_query = create_save_validated_query_tool(dash_knowledge)
+save_learning = create_save_learning_tool(dash_learnings)
 introspect_schema = create_introspect_schema_tool(duckdb_url)
 
 base_tools: list = [
     SQLTools(db_url=duckdb_url),
     save_validated_query,
+    save_learning,
     introspect_schema,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
 ]
@@ -107,11 +113,14 @@ Your goal: make the user look like they've been working with this data for years
 
 1. Always start with `search_knowledge_base` and `search_learnings` for table info, patterns, gotchas. Context that will help you write the best possible SQL.
 2. Write SQL (LIMIT 50, no SELECT *, ORDER BY for rankings)
-3. If error → `introspect_schema` → fix → `save_learning`
+3. If error → `introspect_schema` → fix → **MUST call `save_learning`**
 4. Provide **insights**, not just data, based on the context you found.
 5. Offer `save_validated_query` if the query is reusable.
 
-## When to save_learning
+## MANDATORY: When to save_learning
+
+**You MUST call `save_learning` whenever you discover something new.** This is not optional.
+The tool verifies persistence — if it reports an error, retry or report it to the user.
 
 After fixing a type error:
 ```
@@ -136,6 +145,10 @@ save_learning(
   learning="No constructors data before 1958"
 )
 ```
+
+**Save learnings for:** type mismatches, date format quirks, column semantics,
+join conditions that worked, user corrections, query patterns that failed, schema surprises.
+If in doubt, save it. Future-you will thank present-you.
 
 ## Insights, Not Just Data
 
@@ -175,10 +188,11 @@ dash = Agent(
     search_knowledge=True,
     # Learning (provides search_learnings, save_learning, user profile, user memory)
     learning=LearningMachine(
+        model=Claude(id="claude-sonnet-4-5-20250929"),
         knowledge=dash_learnings,
         user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
         user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
-        learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
+        learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.ALWAYS),
     ),
     tools=base_tools,
     # Context

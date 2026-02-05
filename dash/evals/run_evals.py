@@ -21,7 +21,7 @@ from rich.text import Text
 from sqlalchemy import create_engine, text
 
 from dash.evals.test_cases import CATEGORIES, TEST_CASES, TestCase
-from db import db_url
+from db.duckdb_url import duckdb_url
 
 
 class EvalResult(TypedDict, total=False):
@@ -44,7 +44,7 @@ console = Console()
 
 def execute_golden_sql(sql: str) -> list[dict]:
     """Execute a golden SQL query and return results as list of dicts."""
-    engine = create_engine(db_url)
+    engine = create_engine(duckdb_url)
     with engine.connect() as conn:
         result = conn.execute(text(sql))
         columns = list(result.keys())

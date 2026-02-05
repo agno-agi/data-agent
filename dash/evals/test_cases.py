@@ -1,5 +1,5 @@
 """
-Test cases for evaluating Dash.
+Test cases for evaluating Dash against TPC-H data.
 
 Each test case includes:
 - question: The natural language question to ask
@@ -29,209 +29,215 @@ class TestCase:
 
 # Test cases organized by category
 TEST_CASES: list[TestCase] = [
-    # Basic - straightforward queries
+    # =========================================================================
+    # Basic - straightforward single-table queries
+    # =========================================================================
     TestCase(
-        question="Who won the most races in 2019?",
-        expected_strings=["Hamilton", "11"],
+        question="How many customers are in the database?",
+        expected_strings=["150"],
         category="basic",
-        golden_sql="""
-            SELECT name, COUNT(*) as wins
-            FROM race_wins
-            WHERE TO_DATE(date, 'DD Mon YYYY') >= '2019-01-01'
-              AND TO_DATE(date, 'DD Mon YYYY') < '2020-01-01'
-            GROUP BY name
-            ORDER BY wins DESC
-            LIMIT 1
-        """,
+        golden_sql="SELECT COUNT(*) as customer_count FROM customer",
+        expected_result="150000",
     ),
     TestCase(
-        question="Which team won the 2020 constructors championship?",
-        expected_strings=["Mercedes"],
+        question="How many orders are there in total?",
+        expected_strings=["1,500,000"],
         category="basic",
-        golden_sql="""
-            SELECT team
-            FROM constructors_championship
-            WHERE year = 2020 AND position = 1
-        """,
+        golden_sql="SELECT COUNT(*) as order_count FROM orders",
+        expected_result="1500000",
     ),
     TestCase(
-        question="Who won the 2020 drivers championship?",
-        expected_strings=["Hamilton"],
+        question="What are the five regions in the database?",
+        expected_strings=["AFRICA", "AMERICA", "ASIA", "EUROPE", "MIDDLE EAST"],
         category="basic",
-        golden_sql="""
-            SELECT name
-            FROM drivers_championship
-            WHERE year = 2020 AND position = '1'
-        """,
+        golden_sql="SELECT r_name FROM region ORDER BY r_name",
     ),
     TestCase(
-        question="How many races were there in 2019?",
-        expected_strings=["21"],
+        question="What are the different customer market segments?",
+        expected_strings=["AUTOMOBILE", "BUILDING", "FURNITURE", "HOUSEHOLD", "MACHINERY"],
         category="basic",
-        golden_sql="""
-            SELECT COUNT(DISTINCT venue) as race_count
-            FROM race_wins
-            WHERE TO_DATE(date, 'DD Mon YYYY') >= '2019-01-01'
-              AND TO_DATE(date, 'DD Mon YYYY') < '2020-01-01'
-        """,
-        expected_result="21",
+        golden_sql="SELECT DISTINCT c_mktsegment FROM customer ORDER BY 1",
     ),
-    # Aggregation - GROUP BY queries
+    # =========================================================================
+    # Aggregation - GROUP BY, ranking queries
+    # =========================================================================
     TestCase(
-        question="Which driver has won the most world championships?",
-        expected_strings=["Schumacher", "7"],
+        question="Which nation has the highest total order revenue?",
+        expected_strings=["FRANCE"],
         category="aggregation",
         golden_sql="""
-            SELECT name, COUNT(*) as titles
-            FROM drivers_championship
-            WHERE position = '1'
-            GROUP BY name
-            ORDER BY titles DESC
+            SELECT n.n_name, ROUND(SUM(o.o_totalprice)::NUMERIC, 2) as revenue
+            FROM orders o
+            JOIN customer c ON o.o_custkey = c.c_custkey
+            JOIN nation n ON c.c_nationkey = n.n_nationkey
+            GROUP BY n.n_name
+            ORDER BY revenue DESC
             LIMIT 1
         """,
     ),
     TestCase(
-        question="Which constructor has won the most championships?",
-        expected_strings=["Ferrari"],
+        question="Which market segment generates the most revenue?",
+        expected_strings=["BUILDING"],
         category="aggregation",
         golden_sql="""
-            SELECT team, COUNT(*) as titles
-            FROM constructors_championship
-            WHERE position = 1
-            GROUP BY team
-            ORDER BY titles DESC
+            SELECT c.c_mktsegment, ROUND(SUM(o.o_totalprice)::NUMERIC, 2) as revenue
+            FROM orders o
+            JOIN customer c ON o.o_custkey = c.c_custkey
+            GROUP BY c.c_mktsegment
+            ORDER BY revenue DESC
             LIMIT 1
         """,
     ),
     TestCase(
-        question="Who has the most fastest laps at Monaco?",
-        expected_strings=["Schumacher"],
+        question="Which order priority has the most orders?",
+        expected_strings=["5-LOW"],
         category="aggregation",
         golden_sql="""
-            SELECT name, COUNT(*) as fastest_laps
-            FROM fastest_laps
-            WHERE venue = 'Monaco'
-            GROUP BY name
-            ORDER BY fastest_laps DESC
+            SELECT o_orderpriority, COUNT(*) as cnt
+            FROM orders
+            GROUP BY o_orderpriority
+            ORDER BY cnt DESC
             LIMIT 1
         """,
     ),
     TestCase(
-        question="How many race wins does Lewis Hamilton have in total?",
-        expected_strings=["Hamilton"],
+        question="Which nation has the most suppliers?",
+        expected_strings=["IRAQ"],
         category="aggregation",
         golden_sql="""
-            SELECT COUNT(*) as wins
-            FROM race_wins
-            WHERE name = 'Lewis Hamilton'
-        """,
-    ),
-    TestCase(
-        question="Which team has the most race wins all time?",
-        expected_strings=["Ferrari"],
-        category="aggregation",
-        golden_sql="""
-            SELECT team, COUNT(*) as wins
-            FROM race_wins
-            GROUP BY team
-            ORDER BY wins DESC
+            SELECT n.n_name, COUNT(*) as supplier_count
+            FROM supplier s
+            JOIN nation n ON s.s_nationkey = n.n_nationkey
+            GROUP BY n.n_name
+            ORDER BY supplier_count DESC
             LIMIT 1
         """,
     ),
-    # Data quality - tests type handling (position as TEXT, date parsing)
     TestCase(
-        question="Who finished second in the 2019 drivers championship?",
-        expected_strings=["Bottas"],
+        question="Which part brand has the highest total revenue?",
+        expected_strings=["Brand#35"],
+        category="aggregation",
+        golden_sql="""
+            SELECT p.p_brand,
+                   ROUND(SUM(l.l_extendedprice * (1 - l.l_discount))::NUMERIC, 2) as revenue
+            FROM lineitem l
+            JOIN part p ON l.l_partkey = p.p_partkey
+            GROUP BY p.p_brand
+            ORDER BY revenue DESC
+            LIMIT 1
+        """,
+    ),
+    # =========================================================================
+    # Data quality - tests column naming, type handling, date filtering
+    # =========================================================================
+    TestCase(
+        question="How many orders were placed in 1995?",
+        expected_strings=["228"],
         category="data_quality",
         golden_sql="""
-            SELECT name
-            FROM drivers_championship
-            WHERE year = 2019 AND position = '2'
+            SELECT COUNT(*) as order_count
+            FROM orders
+            WHERE o_orderdate >= '1995-01-01'
+              AND o_orderdate < '1996-01-01'
         """,
+        expected_result="228637",
     ),
     TestCase(
-        question="Which team came third in the 2020 constructors championship?",
-        expected_strings=["McLaren"],
+        question="What percentage of orders are marked as urgent?",
+        expected_strings=["20"],
         category="data_quality",
         golden_sql="""
-            SELECT team
-            FROM constructors_championship
-            WHERE year = 2020 AND position = 3
+            SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE o_orderpriority = '1-URGENT') / COUNT(*), 1) as pct
+            FROM orders
         """,
+        expected_result="20.0",
     ),
     TestCase(
-        question="How many races did Ferrari win in 2019?",
-        expected_strings=["3"],
+        question="How many line items have been returned?",
+        expected_strings=["1,478,870"],
         category="data_quality",
         golden_sql="""
-            SELECT COUNT(*) as wins
-            FROM race_wins
-            WHERE team = 'Ferrari'
-              AND TO_DATE(date, 'DD Mon YYYY') >= '2019-01-01'
-              AND TO_DATE(date, 'DD Mon YYYY') < '2020-01-01'
+            SELECT COUNT(*) as returned_count
+            FROM lineitem
+            WHERE l_returnflag = 'R'
         """,
-        expected_result="3",
+        expected_result="1478870",
     ),
     TestCase(
-        question="How many retirements were there in 2020?",
-        expected_strings=["Ret"],
+        question="What are the possible order statuses and how many orders are in each?",
+        expected_strings=["F", "O", "P"],
         category="data_quality",
-        # No golden SQL - this is checking that the agent handles non-numeric positions
+        golden_sql="""
+            SELECT o_orderstatus, COUNT(*) as cnt
+            FROM orders
+            GROUP BY o_orderstatus
+            ORDER BY cnt DESC
+        """,
     ),
-    # Complex - JOINs, multiple conditions
+    # =========================================================================
+    # Complex - multi-table JOINs, subqueries, comparisons
+    # =========================================================================
     TestCase(
-        question="Compare Ferrari vs Mercedes championship points from 2015-2020",
-        expected_strings=["Ferrari", "Mercedes"],
-        category="complex",
-        # Complex comparison - just check strings are present
-    ),
-    TestCase(
-        question="Who had the most podium finishes in 2019?",
-        expected_strings=["Hamilton"],
+        question="Compare total order revenue across all five regions",
+        expected_strings=["EUROPE", "ASIA", "AMERICA", "AFRICA", "MIDDLE EAST"],
         category="complex",
         golden_sql="""
-            SELECT name, COUNT(*) as podiums
-            FROM race_results
-            WHERE position IN ('1', '2', '3')
-              AND year = 2019
-            GROUP BY name
-            ORDER BY podiums DESC
-            LIMIT 1
+            SELECT r.r_name, ROUND(SUM(o.o_totalprice)::NUMERIC, 2) as revenue
+            FROM orders o
+            JOIN customer c ON o.o_custkey = c.c_custkey
+            JOIN nation n ON c.c_nationkey = n.n_nationkey
+            JOIN region r ON n.n_regionkey = r.r_regionkey
+            GROUP BY r.r_name
+            ORDER BY revenue DESC
         """,
     ),
     TestCase(
-        question="Which driver won the most races for Ferrari?",
-        expected_strings=["Schumacher"],
+        question="What are the top 3 nations by number of suppliers and how many does each have?",
+        expected_strings=["IRAQ", "PERU", "ALGERIA"],
         category="complex",
         golden_sql="""
-            SELECT name, COUNT(*) as wins
-            FROM race_wins
-            WHERE team = 'Ferrari'
-            GROUP BY name
-            ORDER BY wins DESC
-            LIMIT 1
+            SELECT n.n_name, COUNT(*) as supplier_count
+            FROM supplier s
+            JOIN nation n ON s.s_nationkey = n.n_nationkey
+            GROUP BY n.n_name
+            ORDER BY supplier_count DESC
+            LIMIT 3
         """,
     ),
-    # Edge cases - empty results, boundary conditions
     TestCase(
-        question="Who won the constructors championship in 1950?",
-        expected_strings=["no", "1958"],
+        question="Which ship mode is used most frequently?",
+        expected_strings=["TRUCK", "SHIP", "AIR"],
+        category="complex",
+        golden_sql="""
+            SELECT l_shipmode, COUNT(*) as cnt
+            FROM lineitem
+            GROUP BY l_shipmode
+            ORDER BY cnt DESC
+        """,
+    ),
+    # =========================================================================
+    # Edge cases - boundary conditions, tricky questions
+    # =========================================================================
+    TestCase(
+        question="Which customer has the highest account balance and what nation are they from?",
+        expected_strings=["Customer#000061453", "MOROCCO"],
         category="edge_case",
-        # Should mention constructors championship didn't exist until 1958
+        golden_sql="""
+            SELECT c.c_name, c.c_acctbal, n.n_name
+            FROM customer c
+            JOIN nation n ON c.c_nationkey = n.n_nationkey
+            ORDER BY c.c_acctbal DESC
+            LIMIT 1
+        """,
     ),
     TestCase(
-        question="Which driver has exactly 5 world championships?",
-        expected_strings=["Fangio"],
+        question="Are there any customers with a negative account balance? How many?",
+        expected_strings=[],
         category="edge_case",
         golden_sql="""
-            SELECT name
-            FROM (
-                SELECT name, COUNT(*) as titles
-                FROM drivers_championship
-                WHERE position = '1'
-                GROUP BY name
-            ) t
-            WHERE titles = 5
+            SELECT COUNT(*) as negative_balance_count
+            FROM customer
+            WHERE c_acctbal < 0
         """,
     ),
 ]
