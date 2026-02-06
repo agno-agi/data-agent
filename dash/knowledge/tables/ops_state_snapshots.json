@@ -1,0 +1,28 @@
+{
+  "table_name": "state_snapshots",
+  "table_description": "Point-in-time platform state snapshots from collect_state.sh runs. Each snapshot captures host-level resource metrics and Docker inventory.",
+  "use_cases": [
+    "Check current resource pressure (disk, memory) per host",
+    "Track resource usage trends over time",
+    "Correlate resource spikes with deploy events or incidents",
+    "Identify hosts approaching capacity limits"
+  ],
+  "data_quality_notes": [
+    "id format: 'host-YYYY-MM-DDTHH:MM:SSZ' (e.g., 'platform-core-2026-02-06T03:00:00Z')",
+    "disk_usage_pct and memory_usage_pct are NUMERIC (0-100)",
+    "raw_json is the full snapshot for ad-hoc queries — use JSONB operators",
+    "source values: 'collect_state.sh', 'infra-agent', 'manual'",
+    "Danger threshold: disk or memory > 85%. Warning: > 70%"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "TEXT", "description": "Snapshot identifier (host-timestamp)"},
+    {"name": "host", "type": "TEXT", "description": "'platform-core' or 'prod'"},
+    {"name": "captured_at", "type": "TIMESTAMPTZ", "description": "When this snapshot was taken"},
+    {"name": "source", "type": "TEXT", "description": "How the snapshot was collected"},
+    {"name": "disk_usage_pct", "type": "NUMERIC", "description": "Disk usage percentage (0-100)"},
+    {"name": "memory_usage_pct", "type": "NUMERIC", "description": "Memory usage percentage (0-100)"},
+    {"name": "docker_services", "type": "INTEGER", "description": "Number of Docker services running"},
+    {"name": "docker_containers", "type": "INTEGER", "description": "Number of Docker containers"},
+    {"name": "raw_json", "type": "JSONB", "description": "Full snapshot payload for ad-hoc queries"}
+  ]
+}

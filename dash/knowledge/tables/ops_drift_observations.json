@@ -1,0 +1,31 @@
+{
+  "table_name": "drift_observations",
+  "table_description": "Configuration drift between desired state (git manifests) and actual state (live infrastructure). Each row represents one drift item with severity and blast radius for risk scoring.",
+  "use_cases": [
+    "List all current unresolved drift",
+    "Compute drift 'debt' weighted by severity and age",
+    "Track drift resolution velocity over time",
+    "Find recurring drift patterns (services that keep drifting)"
+  ],
+  "data_quality_notes": [
+    "blast_radius is an INTEGER estimate — 1 means only self affected",
+    "first_seen_at tracks when drift was first detected, not when it started",
+    "resolved_at is NULL for active drift — filter WHERE resolved_at IS NULL for current state",
+    "severity is subjective: 'critical' = public-facing + version mismatch",
+    "category values: 'image_version', 'missing_service', 'orphaned_route', 'config_mismatch'"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "observed_at", "type": "TIMESTAMPTZ", "description": "When this drift was last observed"},
+    {"name": "category", "type": "TEXT", "description": "Drift category (image_version, missing_service, etc.)"},
+    {"name": "severity", "type": "TEXT", "description": "'critical', 'high', 'medium', 'low'"},
+    {"name": "service_name", "type": "TEXT", "description": "Service affected by drift"},
+    {"name": "desired_value", "type": "TEXT", "description": "What git says (e.g., desired image tag)"},
+    {"name": "actual_value", "type": "TEXT", "description": "What's actually running"},
+    {"name": "description", "type": "TEXT", "description": "Human-readable drift description"},
+    {"name": "blast_radius", "type": "INTEGER", "description": "Number of dependent services affected"},
+    {"name": "first_seen_at", "type": "TIMESTAMPTZ", "description": "When this drift was first detected"},
+    {"name": "resolved_at", "type": "TIMESTAMPTZ", "description": "When drift was resolved (NULL if active)"},
+    {"name": "resolution", "type": "TEXT", "description": "How the drift was resolved"}
+  ]
+}

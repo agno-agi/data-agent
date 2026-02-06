@@ -1,0 +1,29 @@
+{
+  "table_name": "deploy_events",
+  "table_description": "Deployment lifecycle events from Dokploy webhooks and infra-agent portal operations. Tracks deploy start, success, failure, and rollback.",
+  "use_cases": [
+    "Count deploys per day/week for velocity metrics",
+    "Calculate deploy success rate",
+    "Find deploys that correlate with incidents (time-window join)",
+    "Identify which trigger sources produce the most failures"
+  ],
+  "data_quality_notes": [
+    "event_type values: 'deploy_started', 'deploy_succeeded', 'deploy_failed', 'rollback'",
+    "A deploy_started without matching deploy_succeeded/deploy_failed within 10 minutes is likely stuck",
+    "triggered_by values: 'manual', 'webhook', 'sre-agent', 'monty', 'schedule'",
+    "job_id links to the infra-agent job that triggered the deploy (if any)",
+    "details is JSONB — may contain template_name, compose_path, etc."
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "event_type", "type": "TEXT", "description": "Deploy lifecycle event type"},
+    {"name": "app_name", "type": "TEXT", "description": "Application being deployed"},
+    {"name": "environment", "type": "TEXT", "description": "'platform-core', 'prod', or 'test'"},
+    {"name": "image_before", "type": "TEXT", "description": "Image before the deploy (for rollback tracking)"},
+    {"name": "image_after", "type": "TEXT", "description": "Image after the deploy"},
+    {"name": "triggered_by", "type": "TEXT", "description": "What initiated the deploy"},
+    {"name": "job_id", "type": "TEXT", "description": "Infra-agent job reference"},
+    {"name": "occurred_at", "type": "TIMESTAMPTZ", "description": "When this event occurred"},
+    {"name": "details", "type": "JSONB", "description": "Additional event details"}
+  ]
+}

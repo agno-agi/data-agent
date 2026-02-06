@@ -1,0 +1,28 @@
+{
+  "table_name": "update_status",
+  "table_description": "Software update status mirrored from the infra-agent updates tracker. Shows which services are current, which have updates available, and associated risk.",
+  "use_cases": [
+    "List all services with available updates",
+    "Find services that have been outdated the longest",
+    "Identify high-risk update backlogs",
+    "Track update adoption velocity"
+  ],
+  "data_quality_notes": [
+    "status values: 'CURRENT', 'UPDATE AVAILABLE', 'UPSTREAM CHANGES', 'UNKNOWN'",
+    "deployed and latest are version strings — not always semver-comparable",
+    "update_risk values: 'low', 'medium', 'high', 'unknown'",
+    "last_incident_at tracks when updating this service last caused problems",
+    "A service with status 'UPDATE AVAILABLE' for > 30 days is considered stale"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "service", "type": "TEXT", "description": "Service name"},
+    {"name": "deployed", "type": "TEXT", "description": "Currently running version"},
+    {"name": "latest", "type": "TEXT", "description": "Latest available version"},
+    {"name": "status", "type": "TEXT", "description": "Update status category"},
+    {"name": "last_checked_at", "type": "TIMESTAMPTZ", "description": "When the update check last ran"},
+    {"name": "last_incident_at", "type": "TIMESTAMPTZ", "description": "Last time updating caused problems"},
+    {"name": "update_risk", "type": "TEXT", "description": "Computed update risk level"},
+    {"name": "details", "type": "JSONB", "description": "Additional details (changelog URL, etc.)"}
+  ]
+}
