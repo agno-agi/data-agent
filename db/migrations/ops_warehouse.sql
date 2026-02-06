@@ -143,6 +143,8 @@ CREATE INDEX IF NOT EXISTS idx_actual_services_host
     ON actual_services (host);
 CREATE INDEX IF NOT EXISTS idx_drift_observations_unresolved
     ON drift_observations (resolved_at) WHERE resolved_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_drift_observations_upsert
+    ON drift_observations (service_name, category) WHERE resolved_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_drift_observations_severity
     ON drift_observations (severity);
 CREATE INDEX IF NOT EXISTS idx_deploy_events_occurred
