@@ -1,0 +1,31 @@
+{
+  "table_name": "actual_services",
+  "table_description": "Live Docker services and containers observed on platform hosts. Populated from state snapshots and infra-agent docker_state queries.",
+  "use_cases": [
+    "Check what's actually running on a host",
+    "Compare actual image versions against desired state",
+    "Find services with degraded replicas (e.g., '0/1')",
+    "Identify containers that have been running longest"
+  ],
+  "data_quality_notes": [
+    "replicas is TEXT (e.g., '1/1') — split on '/' to compare desired vs actual",
+    "image_tag may be 'latest' which hides the actual version",
+    "Multiple snapshots per day — use MAX(observed_at) for current state",
+    "Container names follow Dokploy convention: project_service_hash",
+    "state values: 'running', 'exited', 'created', 'restarting'"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "snapshot_id", "type": "TEXT", "description": "Links to state_snapshots.id"},
+    {"name": "service_name", "type": "TEXT", "description": "Docker service or container name"},
+    {"name": "host", "type": "TEXT", "description": "'platform-core' or 'prod'"},
+    {"name": "image", "type": "TEXT", "description": "Full image reference (e.g., 'redis:7.2.5-alpine')"},
+    {"name": "image_tag", "type": "TEXT", "description": "Tag portion only (e.g., '7.2.5-alpine')"},
+    {"name": "replicas", "type": "TEXT", "description": "Replica status (e.g., '1/1', '0/1')"},
+    {"name": "state", "type": "TEXT", "description": "Container state ('running', 'exited', etc.)"},
+    {"name": "ports", "type": "TEXT[]", "description": "Published ports"},
+    {"name": "networks", "type": "TEXT[]", "description": "Attached Docker networks"},
+    {"name": "created_at", "type": "TIMESTAMPTZ", "description": "When the container was created"},
+    {"name": "observed_at", "type": "TIMESTAMPTZ", "description": "When this snapshot was taken"}
+  ]
+}

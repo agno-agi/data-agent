@@ -1,0 +1,29 @@
+{
+  "table_name": "incident_markers",
+  "table_description": "Incident records created by the SRE agent, Grafana alerts, or manual triage. Each incident can reference affected services and include a timeline reconstruction query.",
+  "use_cases": [
+    "Count incidents per week grouped by severity",
+    "Find services with the most incidents",
+    "Correlate incidents with recent deploy events",
+    "Retrieve validated timeline queries for incident reconstruction"
+  ],
+  "data_quality_notes": [
+    "severity values: 'critical', 'warning', 'info'",
+    "affected_services is a TEXT[] array — use ANY() for membership checks",
+    "timeline_query contains validated SQL that reconstructs the incident minute-by-minute",
+    "knowledge_pack is JSONB with gotchas, queries, and runbook patches produced during resolution",
+    "resolved_at is NULL for ongoing incidents"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "title", "type": "TEXT", "description": "Short incident title"},
+    {"name": "severity", "type": "TEXT", "description": "'critical', 'warning', 'info'"},
+    {"name": "started_at", "type": "TIMESTAMPTZ", "description": "When the incident began"},
+    {"name": "resolved_at", "type": "TIMESTAMPTZ", "description": "When the incident was resolved (NULL if ongoing)"},
+    {"name": "affected_services", "type": "TEXT[]", "description": "Services affected by this incident"},
+    {"name": "root_cause", "type": "TEXT", "description": "Root cause analysis"},
+    {"name": "resolution", "type": "TEXT", "description": "How the incident was resolved"},
+    {"name": "timeline_query", "type": "TEXT", "description": "SQL query that reconstructs this incident"},
+    {"name": "knowledge_pack", "type": "JSONB", "description": "Artifacts produced during resolution"}
+  ]
+}

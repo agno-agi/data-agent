@@ -14,6 +14,7 @@ from pathlib import Path
 from agno.os import AgentOS
 
 from dash.agents import dash, dash_knowledge, reasoning_dash
+from dash.agents_ops import ops_dash, ops_knowledge, reasoning_ops_dash
 from db import get_postgres_db
 
 # ============================================================================
@@ -23,8 +24,8 @@ agent_os = AgentOS(
     name="Dash",
     tracing=True,
     db=get_postgres_db(),
-    agents=[dash, reasoning_dash],
-    knowledge=[dash_knowledge],
+    agents=[dash, reasoning_dash, ops_dash, reasoning_ops_dash],
+    knowledge=[dash_knowledge, ops_knowledge],
     config=str(Path(__file__).parent / "config.yaml"),
 )
 

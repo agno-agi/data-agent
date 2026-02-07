@@ -1,0 +1,28 @@
+{
+  "table_name": "docker_events",
+  "table_description": "Docker container lifecycle events captured from host event streams. Critical for incident investigation and crash-loop detection.",
+  "use_cases": [
+    "Detect crash-looping containers (multiple die/start events in short window)",
+    "Find OOM-killed containers (event_type='oom' or exit_code=137)",
+    "Correlate container restarts with deploy events for root cause analysis",
+    "Track container lifecycle patterns over time"
+  ],
+  "data_quality_notes": [
+    "event_type values: 'die', 'oom', 'start', 'stop', 'service_update', 'create', 'destroy'",
+    "exit_code 137 = SIGKILL (usually OOM), 143 = SIGTERM (graceful), 0 = clean exit",
+    "container_name may include Dokploy suffixes — use LIKE for fuzzy matching",
+    "service_name is the Docker Swarm service name (may differ from container name)",
+    "Events are ingested near-real-time from Docker event webhooks"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "event_type", "type": "TEXT", "description": "Docker event type"},
+    {"name": "container_name", "type": "TEXT", "description": "Container name"},
+    {"name": "service_name", "type": "TEXT", "description": "Docker Swarm service name"},
+    {"name": "image", "type": "TEXT", "description": "Container image"},
+    {"name": "host", "type": "TEXT", "description": "'platform-core' or 'prod'"},
+    {"name": "exit_code", "type": "INTEGER", "description": "Process exit code (for die events)"},
+    {"name": "occurred_at", "type": "TIMESTAMPTZ", "description": "When this event occurred"},
+    {"name": "details", "type": "JSONB", "description": "Raw event details"}
+  ]
+}

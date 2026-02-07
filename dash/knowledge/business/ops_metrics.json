@@ -1,0 +1,81 @@
+{
+  "metrics": [
+    {
+      "name": "Drift Debt Score",
+      "definition": "Risk-weighted sum of unresolved drift items. Higher = more operational risk.",
+      "calculation": "SUM(CASE severity WHEN 'critical' THEN 10 WHEN 'high' THEN 5 WHEN 'medium' THEN 2 ELSE 1 END * blast_radius * EXTRACT(DAY FROM NOW() - first_seen_at)) FROM drift_observations WHERE resolved_at IS NULL"
+    },
+    {
+      "name": "Mean Time to Drift Resolution",
+      "definition": "Average time between first detecting drift and resolving it.",
+      "calculation": "AVG(resolved_at - first_seen_at) FROM drift_observations WHERE resolved_at IS NOT NULL"
+    },
+    {
+      "name": "Deploy Success Rate",
+      "definition": "Percentage of deployments that succeed without rollback.",
+      "calculation": "COUNT(*) FILTER (WHERE event_type = 'deploy_succeeded') * 100.0 / NULLIF(COUNT(*) FILTER (WHERE event_type = 'deploy_started'), 0) FROM deploy_events"
+    },
+    {
+      "name": "Incident Frequency",
+      "definition": "Number of incidents per week, grouped by severity.",
+      "calculation": "COUNT(*) FROM incident_markers WHERE started_at > NOW() - INTERVAL '7 days' GROUP BY severity"
+    },
+    {
+      "name": "Update Backlog Age",
+      "definition": "Average age of pending updates in days.",
+      "calculation": "AVG(EXTRACT(DAY FROM NOW() - last_checked_at)) FROM update_status WHERE status IN ('UPDATE AVAILABLE', 'UPSTREAM CHANGES')"
+    },
+    {
+      "name": "OOM Frequency (24h)",
+      "definition": "Number of out-of-memory kills in the last 24 hours.",
+      "calculation": "COUNT(*) FROM docker_events WHERE event_type = 'oom' AND occurred_at > NOW() - INTERVAL '24 hours'"
+    },
+    {
+      "name": "Platform Health Score",
+      "definition": "Composite indicator combining active drift, OOM events, pending updates, disk pressure, and degraded services. Lower is better.",
+      "calculation": "Weighted sum: active_drift_count * 2 + oom_24h * 10 + pending_updates + (avg_disk_pct > 85)::int * 20 + degraded_services * 15"
+    },
+    {
+      "name": "Exposure Multiplier",
+      "definition": "Risk multiplier based on service exposure level for drift debt calculation.",
+      "calculation": "3.0 if service has public-facing Traefik route, 2.0 if on platform-core (control plane), 1.5 if on prod, 1.0 if on test"
+    }
+  ],
+  "business_rules": [
+    "Platform-core services (Traefik, Dokploy, monitoring) are ALWAYS higher priority than application services",
+    "Drift on public-facing domains (Traefik routers with external domains) carries 3x risk weight",
+    "A deploy_started without a matching deploy_succeeded or deploy_failed within 10 minutes is likely stuck",
+    "Docker OOM events (event_type = 'oom' or exit_code = 137) are strong predictors of subsequent service restarts",
+    "Update status 'UPDATE AVAILABLE' for > 30 days is considered 'stale' and escalates risk",
+    "Ghost and WordPress services have MySQL sidecars — always check both when one has issues",
+    "Priority tier ordering for updates: P4 (datastores) first, P0 (edge/Traefik) last",
+    "All times in the warehouse are UTC — convert when presenting to users"
+  ],
+  "common_gotchas": [
+    {
+      "issue": "Dokploy service names include random suffixes",
+      "tables_affected": ["actual_services", "deploy_events"],
+      "solution": "Use LIKE patterns or split on '-' to match app names: e.g., WHERE service_name LIKE 'ghost-test-%'"
+    },
+    {
+      "issue": "State snapshots are point-in-time, not continuous",
+      "tables_affected": ["actual_services", "state_snapshots"],
+      "solution": "Always check observed_at — a service may have changed between snapshots. For real-time, use the latest snapshot only."
+    },
+    {
+      "issue": "Traefik labels are JSONB, not flat columns",
+      "tables_affected": ["desired_services"],
+      "solution": "Use JSONB operators: traefik_labels->>'key' or traefik_labels ? 'key'"
+    },
+    {
+      "issue": "image vs image_tag distinction",
+      "tables_affected": ["actual_services", "desired_services"],
+      "solution": "image is the full reference (e.g., 'redis:7.2.5-alpine'), image_tag is just the tag part ('7.2.5-alpine'). Use image_tag for version comparisons."
+    },
+    {
+      "issue": "Drift observations track first_seen_at separately from observed_at",
+      "tables_affected": ["drift_observations"],
+      "solution": "first_seen_at is when drift was first detected. observed_at is the last ETL run that confirmed it still exists. Use first_seen_at for age calculations."
+    }
+  ]
+}

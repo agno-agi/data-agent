@@ -1,0 +1,31 @@
+{
+  "table_name": "desired_services",
+  "table_description": "Desired state of platform services from git manifests (infra/dokploy/apps/**). Represents what SHOULD be running based on checked-in configuration.",
+  "use_cases": [
+    "See what services are declared in git",
+    "Compare desired images against actual running images",
+    "Find services with public-facing domains",
+    "Identify services without Traefik routing labels"
+  ],
+  "data_quality_notes": [
+    "image_tag may be a floating tag like '5.x-alpine' — compare carefully with actual",
+    "domains is a TEXT[] array — use ANY() or && operators for array queries",
+    "traefik_labels is JSONB — use ->> operator for label access",
+    "source_file points to the git manifest path for traceability",
+    "Refreshed on each ETL run — loaded_at shows when last parsed"
+  ],
+  "table_columns": [
+    {"name": "id", "type": "SERIAL", "description": "Auto-increment primary key"},
+    {"name": "app_name", "type": "TEXT", "description": "Application name (e.g., 'ghost-test')"},
+    {"name": "service_name", "type": "TEXT", "description": "Service within the app (e.g., 'ghost', 'ghost-db')"},
+    {"name": "environment", "type": "TEXT", "description": "'platform-core', 'prod', or 'test'"},
+    {"name": "image", "type": "TEXT", "description": "Full image reference from manifest"},
+    {"name": "image_tag", "type": "TEXT", "description": "Tag portion only"},
+    {"name": "domains", "type": "TEXT[]", "description": "Configured domains for Traefik routing"},
+    {"name": "traefik_labels", "type": "JSONB", "description": "Traefik routing labels from compose"},
+    {"name": "volumes", "type": "TEXT[]", "description": "Volume mounts"},
+    {"name": "networks", "type": "TEXT[]", "description": "Docker networks"},
+    {"name": "source_file", "type": "TEXT", "description": "Git path to the source manifest"},
+    {"name": "loaded_at", "type": "TIMESTAMPTZ", "description": "When this record was loaded"}
+  ]
+}
